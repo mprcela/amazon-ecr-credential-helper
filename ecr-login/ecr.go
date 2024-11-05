@@ -14,10 +14,13 @@
 package ecr
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/aws/aws-sdk-go-v2/config"
 
 	"github.com/sirupsen/logrus"
 
@@ -123,7 +126,15 @@ func (self ECRHelper) Get(serverURL string) (string, string, error) {
 			return "", "", credentials.NewErrCredentialsNotFound()
 		}
 	} else {
-		client = self.clientFactory.NewClientFromRegion(registry.Region)
+		awsConfig, err := config.LoadDefaultConfig(
+			context.TODO(),
+			config.WithRegion(registry.Region),
+			config.WithSharedConfigProfile(fmt.Sprintf("ecr_%s", registry.ID)),
+		)
+		if err != nil {
+			return "", "", err
+		}
+		client = self.clientFactory.NewClient(awsConfig)
 	}
 
 	auth, err := client.GetCredentials(serverURL)
